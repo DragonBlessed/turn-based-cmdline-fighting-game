@@ -68,6 +68,16 @@ void stamina_recovery_never_exceeds_the_maximum() {
                "Recover should cap stamina at the maximum");
 }
 
+void unaffordable_actions_are_rejected_before_resolution() {
+  Fighter tired = fresh_fighter("Tired");
+  tired.stamina = 2;
+
+  expect_equal(can_afford(tired, Action::HeavyAttack), 0,
+               "a fighter with two stamina cannot use Heavy Attack");
+  expect_equal(can_afford(tired, Action::LightAttack), 1,
+               "a fighter with two stamina can use Light Attack");
+}
+
 void double_knockout_is_a_draw() {
   Fighter first = fresh_fighter("Player 1");
   Fighter second = fresh_fighter("Player 2");
@@ -89,6 +99,7 @@ int main() {
   guard_blocks_a_heavy_attack_and_restores_stamina();
   recover_restores_stamina_but_does_not_block_damage();
   stamina_recovery_never_exceeds_the_maximum();
+  unaffordable_actions_are_rejected_before_resolution();
   double_knockout_is_a_draw();
   std::cout << "All fighter tests passed.\n";
 }

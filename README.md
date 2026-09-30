@@ -1,24 +1,45 @@
-# cpp-container-template
+# Turn-Based Command-Line Fighting Game
 
-## Getting Started
+A fast, hot-seat 1v1 fighting game for two people sharing one terminal. Both
+players choose privately, then their actions resolve at the same time.
 
-This repository is compatible with [cpp-container](https://github.com/ChicoState/cpp-container). If not already built on your machine, clone and build it.
-
-Run the container:
-
-```bash
-docker run -v "$(pwd)":/usr/src -it cpp-container
-```
-
-Run the application interactively in a shell:
+## Run the game
 
 ```bash
-docker run -v "$(pwd)":/usr/src -it cpp-container sh
+bash test_runner.sh
 ```
 
-## Structure
+The game uses ANSI terminal escape codes to clear the screen between players.
+Pass the terminal after selecting an action and do not use scrollback to keep
+choices private.
 
-* `.agents` - AI agent configurations and skills (in `/skills` subdirectory) for this project
-* `.` - The root directory contains the C++ code for the application as well as necessary scripts
-* `specs` - Specification documentation
-* `tests` - Test code
+## Rules
+
+Each fighter starts with 12 health and 6 stamina. A fighter at 0 health loses;
+if both reach 0 after the same round, the match is a draw.
+
+| Action | Cost | Effect |
+|---|---:|---|
+| Light Attack | 1 stamina | Deals 2 damage unless blocked. |
+| Heavy Attack | 3 stamina | Deals 5 damage unless blocked. |
+| Guard | 0 stamina | Blocks attacks and restores 1 stamina. |
+| Recover | 0 stamina | Restores 2 stamina but does not block damage. |
+
+Stamina never exceeds 6. Actions that cost more stamina than a player has are
+rejected before the round resolves.
+
+## Test the combat rules
+
+```bash
+bash run_tests.sh
+```
+
+The tests cover simultaneous damage, guarding, recovery, stamina caps, and
+double knockouts.
+
+## Project structure
+
+- `main.cpp` — terminal interaction and match loop
+- `fighter.h` / `fighter.cpp` — deterministic combat rules
+- `tests/fighter_tests.cpp` — unit tests for combat
+- `specs/turn-based-fighter-plan.md` — approved specification and task plan
