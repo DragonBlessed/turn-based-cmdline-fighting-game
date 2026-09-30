@@ -78,6 +78,91 @@ void unaffordable_actions_are_rejected_before_resolution() {
                "a fighter with two stamina can use Light Attack");
 }
 
+void signature_actions_are_limited_to_their_fighter() {
+  Fighter brawler = fresh_fighter("Brawler");
+  brawler.type = FighterType::Brawler;
+  Fighter tactician = fresh_fighter("Tactician");
+  tactician.type = FighterType::Tactician;
+
+  expect_equal(can_use_action(brawler, Action::Haymaker), 1,
+               "Brawler should be able to use Haymaker");
+  expect_equal(can_use_action(brawler, Action::Feint), 0,
+               "Brawler should not be able to use Feint");
+  expect_equal(can_use_action(tactician, Action::Feint), 1,
+               "Tactician should be able to use Feint");
+  expect_equal(can_use_action(tactician, Action::Haymaker), 0,
+               "Tactician should not be able to use Haymaker");
+  expect_equal(stamina_cost(Action::Haymaker), 4,
+               "Haymaker should cost four stamina");
+  expect_equal(stamina_cost(Action::Feint), 2,
+               "Feint should cost two stamina");
+}
+
+void haymaker_deals_six_damage_and_guard_blocks_it() {
+  Fighter brawler = fresh_fighter("Brawler");
+  brawler.type = FighterType::Brawler;
+  const RoundResult attack_result =
+      resolve_round(brawler, Action::Haymaker, fresh_fighter("Target"),
+                    Action::Recover);
+
+  expect_equal(attack_result.second.health, 6,
+               "Haymaker should deal six damage when not blocked");
+
+  Fighter guarder = fresh_fighter("Guarder");
+  guarder.stamina = 4;
+
+  const RoundResult result =
+      resolve_round(brawler, Action::Haymaker, guarder, Action::Guard);
+
+  expect_equal(result.second.health, 12, "Guard should block Haymaker damage");
+  expect_equal(result.first.stamina, 2, "Haymaker should cost four stamina");
+  expect_equal(result.second.stamina, 5,
+               "Guard should still regain stamina against Haymaker");
+}
+
+void feint_denies_guard_stamina_without_bypassing_guard() {
+  Fighter tactician = fresh_fighter("Tactician");
+  tactician.type = FighterType::Tactician;
+  Fighter guarder = fresh_fighter("Guarder");
+  guarder.stamina = 4;
+
+  const RoundResult result =
+      resolve_round(tactician, Action::Feint, guarder, Action::Guard);
+
+  expect_equal(result.second.health, 12, "Guard should block Feint damage");
+  expect_equal(result.first.stamina, 4, "Feint should cost two stamina");
+  expect_equal(result.second.stamina, 4,
+               "Feint should deny Guard's stamina gain");
+}
+
+void signature_actions_resolve_symmetrically_in_mirror_matches() {
+  Fighter first_brawler = fresh_fighter("First Brawler");
+  first_brawler.type = FighterType::Brawler;
+  Fighter second_brawler = fresh_fighter("Second Brawler");
+  second_brawler.type = FighterType::Brawler;
+  const RoundResult brawler_result =
+      resolve_round(first_brawler, Action::Haymaker, second_brawler,
+                    Action::Haymaker);
+
+  expect_equal(brawler_result.first.health, brawler_result.second.health,
+               "matching Haymakers should affect both Brawlers equally");
+  expect_equal(brawler_result.first.stamina, brawler_result.second.stamina,
+               "matching Haymakers should cost both Brawlers equally");
+
+  Fighter first_tactician = fresh_fighter("First Tactician");
+  first_tactician.type = FighterType::Tactician;
+  Fighter second_tactician = fresh_fighter("Second Tactician");
+  second_tactician.type = FighterType::Tactician;
+  const RoundResult tactician_result =
+      resolve_round(first_tactician, Action::Feint, second_tactician,
+                    Action::Feint);
+
+  expect_equal(tactician_result.first.health, tactician_result.second.health,
+               "matching Feints should affect both Tacticians equally");
+  expect_equal(tactician_result.first.stamina, tactician_result.second.stamina,
+               "matching Feints should cost both Tacticians equally");
+}
+
 void double_knockout_is_a_draw() {
   Fighter first = fresh_fighter("Player 1");
   Fighter second = fresh_fighter("Player 2");
@@ -100,6 +185,10 @@ int main() {
   recover_restores_stamina_but_does_not_block_damage();
   stamina_recovery_never_exceeds_the_maximum();
   unaffordable_actions_are_rejected_before_resolution();
+  signature_actions_are_limited_to_their_fighter();
+  haymaker_deals_six_damage_and_guard_blocks_it();
+  feint_denies_guard_stamina_without_bypassing_guard();
+  signature_actions_resolve_symmetrically_in_mirror_matches();
   double_knockout_is_a_draw();
   std::cout << "All fighter tests passed.\n";
 }

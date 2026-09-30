@@ -10,6 +10,10 @@ int attack_damage(Action action) {
       return 2;
     case Action::HeavyAttack:
       return 5;
+    case Action::Haymaker:
+      return 6;
+    case Action::Feint:
+      return 1;
     case Action::Guard:
     case Action::Recover:
       return 0;
@@ -21,14 +25,16 @@ bool is_guarding(Action action) {
   return action == Action::Guard;
 }
 
-int stamina_gain(Action action) {
+int stamina_gain(Action action, Action opposing_action) {
   switch (action) {
     case Action::Guard:
-      return 1;
+      return opposing_action == Action::Feint ? 0 : 1;
     case Action::Recover:
       return 2;
     case Action::LightAttack:
     case Action::HeavyAttack:
+    case Action::Haymaker:
+    case Action::Feint:
       return 0;
   }
   return 0;
@@ -55,11 +61,30 @@ int stamina_cost(Action action) {
       return 1;
     case Action::HeavyAttack:
       return 3;
+    case Action::Haymaker:
+      return 4;
+    case Action::Feint:
+      return 2;
     case Action::Guard:
     case Action::Recover:
       return 0;
   }
   return 0;
+}
+
+bool can_use_action(const Fighter& fighter, Action action) {
+  switch (action) {
+    case Action::Haymaker:
+      return fighter.type == FighterType::Brawler;
+    case Action::Feint:
+      return fighter.type == FighterType::Tactician;
+    case Action::LightAttack:
+    case Action::HeavyAttack:
+    case Action::Guard:
+    case Action::Recover:
+      return true;
+  }
+  return false;
 }
 
 bool can_afford(const Fighter& fighter, Action action) {
@@ -76,6 +101,10 @@ const char* action_name(Action action) {
       return "Guard";
     case Action::Recover:
       return "Recover";
+    case Action::Haymaker:
+      return "Haymaker";
+    case Action::Feint:
+      return "Feint";
   }
   return "Unknown Action";
 }
@@ -95,9 +124,9 @@ RoundResult resolve_round(Fighter first, Action first_action, Fighter second,
   second.health = std::max(0, second.health - second_damage);
 
   first.stamina = std::min(kMaximumStamina,
-                           first.stamina + stamina_gain(first_action));
+                           first.stamina + stamina_gain(first_action, second_action));
   second.stamina = std::min(kMaximumStamina,
-                            second.stamina + stamina_gain(second_action));
+                            second.stamina + stamina_gain(second_action, first_action));
 
   return {first, second, determine_outcome(first, second)};
 }
